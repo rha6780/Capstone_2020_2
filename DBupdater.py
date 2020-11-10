@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 
 class DBupdater:
   def __init__(self):
-    self.conn = pymysql.connect('cpslab.jejunu.ac.kr','rha6780',passwd='rha6780',db='capsthone', charset='utf8')
+    self.conn = pymysql.connect('호스트주소','아이디',passwd='비밀번호',db='데이터베이스', charset='utf8')
     with self.conn.cursor() as curs:
        sql="""
        CREATE TABLE IF NOT EXISTS company_info(
@@ -44,8 +44,7 @@ class DBupdater:
     print("DONE!")
 
   def read_krx_code(self):
-    url='http://kind.krx.co.kr/corpgeneral/corpList.do?method='\
-    'download&searchType=13'
+    url='http://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13'
     krx=pd.read_html(url, header=0)[0]
     krx=krx[['종목코드','회사명']]
     krx=krx.rename(columns={'종목코드':'code', '회사명':'company'})
@@ -123,7 +122,7 @@ class DBupdater:
   def execute_daily(self):
     self.update_comp_info()
     try:
-      with open('/gdrive/My Drive/cap/캡스톤/config.json', 'r') as in_file:
+      with open('/파일경로/config.json', 'r') as in_file:
         config=json.load(in_file)
         pages_to_fetch=config['pages_to_fetch']
     except FileNotFoundError:
