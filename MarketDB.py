@@ -6,7 +6,7 @@ import re
 
 class MarketDB:
   def __init__(self):
-    self.conn=pymysql.connect(host='cpslab.jejunu.ac.kr', user='rha6780', password='rha6780', db='capsthone', charset='utf8')
+    self.conn=pymysql.connect(host='호스트 주소', user='아이디', password='비밀번호', db='데이터베이스', charset='utf8')
     self.codes={}
     self.get_comp_info()
   
@@ -80,5 +80,5 @@ class MarketDB:
 
 if __name__== '__main__':
   mk=MarketDB()
-  print(mk.get_daily_price('�Ｚ�����𿡽�','2019-11-05', '2020-11-06'))
+  print(mk.get_daily_price('찾을 회사','2019-11-05', '2020-11-06'))
   mk.codes['018260']
