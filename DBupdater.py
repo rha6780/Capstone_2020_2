@@ -1,7 +1,10 @@
 ﻿import pymysql
 import pandas as pd
 import urllib, pymysql, calendar, time, json
-from urllib.request import urlopen
+try:
+	from urllib.request import urlopen
+except ImportError:
+	from urllib2 import urlopen
 from datetime import datetime
 from threading import Timer
 from bs4 import BeautifulSoup
@@ -9,7 +12,7 @@ from bs4 import BeautifulSoup
 
 class DBupdater:
   def __init__(self):
-    self.conn = pymysql.connect('호스트주소','아이디',passwd='비밀번호',db='데이터베이스', charset='utf8')
+    self.conn = pymysql.connect('cpslab.jejunu.ac.kr','rha6780',passwd='rha6780',db='capstone', charset='utf8')
     with self.conn.cursor() as curs:
        sql="""
        CREATE TABLE IF NOT EXISTS company_info(
@@ -46,7 +49,7 @@ class DBupdater:
   def read_krx_code(self):
     url='http://kind.krx.co.kr/corpgeneral/corpList.do?method=download&searchType=13'
     krx=pd.read_html(url, header=0)[0]
-    krx=krx[['종목코드','회사명']]
+    krx=krx[['종목코드', '회사명']]
     krx=krx.rename(columns={'종목코드':'code', '회사명':'company'})
     krx.code=krx.code.map('{:06d}'.format)
     return krx
@@ -65,19 +68,19 @@ class DBupdater:
       if rs[0]==None or rs[0]< today :
         krx=self.read_krx_code()
         for idx in range(len(krx)):
-          code=krx.code.values[idx]
-          company=krx.company.values[idx]
-          sql=f"REPLACE INTO company_info (code, company, last_update) VALUES ('{code}','{company}', '{today}')"
+          code1=krx.code.values[idx]
+          company1=krx.company.values[idx]
+          sql="REPLACE INTO company_info (code, company, last_update) VALUES ('%s', '%s', '%s')" %(code1 ,company1, today)
           curs.execute(sql)
-          self.codes[code]=company
+          self.codes[code1]=company1
           tmnow=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-          print(f"[{tmnow}]{idx:04d} REPLACE INTO company_info VALUES ({code}, {company}, {today})")
+          print("[tmnow] {idx:04d} REPLACE INTO company_info VALUES  (%s, %s, %s) " %(code1, company1, today))
         self.conn.commit()
         print('')
         
   def read_naver(self, code, company, pages_to_fetch):
     try:
-      url=f"http://finance.naver.com/item/sise_day.nhn?code={code}"
+      url="http://finance.naver.com/item/sise_day.nhn?code=%s" %code
       with urlopen(url) as doc:
         if doc is None:
           return None
@@ -93,7 +96,7 @@ class DBupdater:
         pg_url='{}&page={}'.format(url, page)
         df=df.append(pd.read_html(pg_url, header=0)[0])
         tmnow=datetime.now().strftime("%Y-%m-%d %H:%M")
-        print('[{}] {} ({}) : {:04d}/{:04d} pages are downloading..!'. format(tmnow, company, code, page, pages), end="\r")
+        print('[%s] %s (%s) : %s . %s pages are downloading..!' %(tmnow, company, code, page, pages))
       df=df.rename(columns={'날짜':'date','종가':'close','전일비':'diff','시가':'open','고가':'high','저가':'low','거래량':'volume'})
       df['date']=df['date'].replace('.','-')
       df=df.dropna()
@@ -107,10 +110,10 @@ class DBupdater:
   def replace_into_db(self, df, num, code, company):
     with self.conn.cursor() as curs:
       for r in df.itertuples():
-        sql=f"REPLACE INTO daily_price VALUES ('{code}', '{r.date}', '{r.open}', '{r.high}', '{r.low}', '{r.close}', '{r.diff}', '{r.volume}')"
+        sql="REPLACE INTO daily_price VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" %(code, r.date, r.open, r.high, r.low, r.close, r.diff, r.volume)
         curs.execute(sql)
       self.conn.commit()
-      print('[{}] #{:04d} {} ({}): {} rows>REPLACE INTO daily_price [OK]'.format(datetime.now().strftime('%Y-%m-%d %H:%M'), num+1, company, code, len(df)))
+      print('[%s] # %s %s (%s): %s rows>REPLACE INTO daily_price [OK]' %(datetime.now().strftime('%Y-%m-%d %H:%M'), num+1, company, code, len(df)))
 
   def update_daily_price(self, pages_to_fetch):
     for idx, code in enumerate(self.codes):
@@ -122,7 +125,7 @@ class DBupdater:
   def execute_daily(self):
     self.update_comp_info()
     try:
-      with open('/파일경로/config.json', 'r') as in_file:
+      with open('/home/rha6780/config.json', 'r') as in_file:
         config=json.load(in_file)
         pages_to_fetch=config['pages_to_fetch']
     except FileNotFoundError:
